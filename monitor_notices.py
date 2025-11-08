@@ -39,16 +39,21 @@ DB_FILE = "notices.db"
 COOKIE_HEADER = os.getenv("ERP_COOKIE")
 
 if not COOKIE_HEADER:
-    print("❌ ERROR: ERP_COOKIE not found in .env file")
+    print("❌ ERROR: ERP_COOKIE environment variable not set")
+    print("For local: Create .env file or set environment variable")
+    print("For Railway: Set ERP_COOKIE in Railway dashboard → Variables tab")
     exit(1)
 
 if not SMTP_USER or not SMTP_PASS:
-    print("❌ ERROR: EMAIL_USER and EMAIL_PASS not found in .env file")
+    print("❌ ERROR: EMAIL_USER and EMAIL_PASS environment variables not set")
+    print("For local: Create .env file or set environment variables")
+    print("For Railway: Set EMAIL_USER and EMAIL_PASS in Railway dashboard → Variables tab")
     exit(1)
 
 if not GOOGLE_GROUP_EMAIL:
-    print("❌ ERROR: GOOGLE_GROUP_EMAIL not found in .env file")
-    print("Set it to your Google Group email address")
+    print("❌ ERROR: GOOGLE_GROUP_EMAIL environment variable not set")
+    print("For local: Create .env file or set environment variable")
+    print("For Railway: Set GOOGLE_GROUP_EMAIL in Railway dashboard → Variables tab")
     exit(1)
 
 

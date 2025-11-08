@@ -11,18 +11,33 @@
    - Select "Deploy from GitHub repo"
    - Choose your repository: `GugulothBhuvan/CDC-Notices`
 
-3. **Set Environment Variables:**
-   - Go to your project → Variables tab
-   - Add these variables:
-     ```
-     ERP_COOKIE=your_cookie_string_here
-     EMAIL_USER=youremail@gmail.com
-     EMAIL_PASS=your_app_password
-     GOOGLE_GROUP_EMAIL=your-group@googlegroups.com
-     POLL_INTERVAL=300
-     SMTP_HOST=smtp.gmail.com
-     SMTP_PORT=587
-     ```
+3. **Set Environment Variables (IMPORTANT!):**
+   - Go to your project → **Variables** tab
+   - Click **"New Variable"** for each one
+   - Add these variables (one by one):
+     
+     **Variable Name:** `ERP_COOKIE`  
+     **Value:** `JSESSIONID=...; ssoToken=...; ...` (your full cookie string)
+     
+     **Variable Name:** `EMAIL_USER`  
+     **Value:** `youremail@gmail.com`
+     
+     **Variable Name:** `EMAIL_PASS`  
+     **Value:** `your_16_character_app_password` (Gmail App Password, not regular password)
+     
+     **Variable Name:** `GOOGLE_GROUP_EMAIL`  
+     **Value:** `your-group@googlegroups.com`
+     
+     **Variable Name:** `POLL_INTERVAL`  
+     **Value:** `300` (optional, defaults to 300 seconds)
+     
+     **Variable Name:** `SMTP_HOST`  
+     **Value:** `smtp.gmail.com` (optional, defaults to Gmail)
+     
+     **Variable Name:** `SMTP_PORT`  
+     **Value:** `587` (optional, defaults to 587)
+   
+   **⚠️ CRITICAL:** Without these variables, the service will fail to start!
 
 4. **Deploy:**
    - Railway will automatically detect the `Procfile`
