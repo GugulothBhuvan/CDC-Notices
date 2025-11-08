@@ -97,8 +97,18 @@ def initialize_existing_notices():
     print("(No emails will be sent for existing notices)")
     
     data = fetch_notices()
-    if not data or "rows" not in data:
+    if not data:
         print("⚠ Could not fetch notices for initialization")
+        print("⚠ This might mean:")
+        print("  - Cookie is expired or invalid")
+        print("  - Network connectivity issue")
+        print("  - ERP endpoint returned an error")
+        print("⚠ The monitor will still start, but will retry on next check")
+        return False
+    
+    if "rows" not in data or not data.get("rows"):
+        print("⚠ No notices found in response")
+        print("⚠ Response might be empty or in unexpected format")
         return False
     
     count = 0
@@ -168,25 +178,52 @@ def fetch_notices():
         try:
             return r.json()
         except ValueError:
-            # Parse XML
-            root = ET.fromstring(r.text)
+            # Parse XML - handle potential malformed XML
+            xml_text = r.text.strip()
+            
+            # Check if it's actually HTML (login page redirect)
+            if xml_text.lower().startswith('<!doctype') or xml_text.lower().startswith('<html'):
+                print(f"⚠ Received HTML instead of XML - likely redirected to login page")
+                return None
+            
+            try:
+                # Try parsing with standard parser first
+                root = ET.fromstring(xml_text)
+            except ET.ParseError as e:
+                # Try with error recovery parser
+                print(f"⚠ XML Parse Error (trying recovery): {e}")
+                try:
+                    parser = ET.XMLParser(recover=True)
+                    root = ET.fromstring(xml_text, parser=parser)
+                except Exception as e2:
+                    print(f"⚠ Could not parse XML: {e2}")
+                    print(f"Response preview (first 500 chars): {xml_text[:500]}")
+                    return None
+            
             result = {"rows": []}
             for row in root.findall('.//row'):
                 cells = []
                 for cell in row.findall('cell'):
-                    cell_text = cell.text if cell.text else ""
-                    cells.append(cell_text.strip())
+                    # Get text content, handling CDATA
+                    cell_text = ""
+                    if cell.text:
+                        cell_text = cell.text
+                    # Also check for tail text
+                    if not cell_text and hasattr(cell, 'tail') and cell.tail:
+                        cell_text = cell.tail
+                    cells.append(cell_text.strip() if cell_text else "")
                 
-                # Extract notice data (adjust indices based on your CSV structure)
-                notice = {
-                    "id": cells[0] if len(cells) > 0 else "",
-                    "category": cells[1] if len(cells) > 1 else "",
-                    "priority": cells[2] if len(cells) > 2 else "",
-                    "company": cells[3] if len(cells) > 3 else "",
-                    "title": cells[4] if len(cells) > 4 else "",
-                    "description": cells[4] if len(cells) > 4 else "",  # Full description
-                }
-                result["rows"].append({"cell": cells, "notice": notice})
+                # Only add if we have at least an ID
+                if len(cells) > 0 and cells[0]:
+                    notice = {
+                        "id": cells[0],
+                        "category": cells[1] if len(cells) > 1 else "",
+                        "priority": cells[2] if len(cells) > 2 else "",
+                        "company": cells[3] if len(cells) > 3 else "",
+                        "title": cells[4] if len(cells) > 4 else "",
+                        "description": cells[4] if len(cells) > 4 else "",
+                    }
+                    result["rows"].append({"cell": cells, "notice": notice})
             
             return result
             
@@ -390,9 +427,15 @@ def main():
     # On first run, initialize database with existing notices (no emails)
     if is_first_run():
         if not initialize_existing_notices():
-            print("⚠ Failed to initialize. Exiting.")
-            return
-        print("\n✓ Initialization complete. Starting monitoring...")
+            print("\n⚠ Failed to initialize on first run.")
+            print("⚠ This might be due to:")
+            print("  - Cookie expired (update ERP_COOKIE in Railway)")
+            print("  - Network issue (will retry on next check)")
+            print("  - ERP endpoint temporarily unavailable")
+            print("\n⚠ Monitor will continue running and retry on next check...")
+            print("⚠ Database will be initialized when notices are successfully fetched")
+        else:
+            print("\n✓ Initialization complete. Starting monitoring...")
     else:
         # Check how many notices are in database
         conn = sqlite3.connect(DB_FILE)
